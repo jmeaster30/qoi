@@ -110,9 +110,11 @@ impl QoiFile
     let mut run_length: u8 = 0;
     for pixel in &self.decoded
     {
+     // println!("[{}] {}, {}, {}, {} -- {}, {}, {}, {}", self.encoded.len(), pixel.red, pixel.green, pixel.blue, pixel.alpha, previous_pixel.red, previous_pixel.green, previous_pixel.blue, pixel.alpha);
       if pixel.clone() == previous_pixel {
         run_length += 1;
         if run_length == 62 {
+          //println!("run {}", run_length);
           self.encoded.push(QOI_OP_RUN | (run_length - 1));
           run_length = 0;
         }
@@ -121,6 +123,7 @@ impl QoiFile
       {
         if run_length > 0
         {
+          //println!("run {}", run_length);
           self.encoded.push(QOI_OP_RUN | (run_length - 1));
           run_length = 0;
         }
@@ -135,30 +138,29 @@ impl QoiFile
 
           if pixel.alpha == previous_pixel.alpha
           {
-            let vr: i32 = (pixel.red as i32) - (previous_pixel.red as i32);
-            let vg: i32 = (pixel.green as i32) - (previous_pixel.green as i32);
-            let vb: i32 = (pixel.blue as i32) - (previous_pixel.blue as i32);
+            let vr: i32 = sub(pixel.red, previous_pixel.red);
+            let vg: i32 = sub(pixel.green, previous_pixel.green);
+            let vb: i32 = sub(pixel.blue, previous_pixel.blue);
   
             let vg_r: i32 = vr - vg;
             let vg_b: i32 = vb - vg;
 
-            println!("[{}] {}, {}, {}, {} -- {}, {}, {}, {}", self.encoded.len(), pixel.red, pixel.green, pixel.blue, pixel.alpha, previous_pixel.red, previous_pixel.green, previous_pixel.blue, pixel.alpha);
-            println!("[{}] {}, {}, {} -- {}, {}", self.encoded.len(), vr, vg, vb, vg_r, vg_b);
+            //println!("[{}] {}, {}, {} -- {}, {}", self.encoded.len(), vr, vg, vb, vg_r, vg_b);
 
             if vr > -3 && vr < 2 && vg > -3 && vg < 2 && vb > -3 && vb < 2
             {
-              println!("diff");
+              //println!("diff");
               self.encoded.push(QOI_OP_DIFF | (((vr + 2) as u8) << 4) | (((vg + 2) as u8) << 2) | (vb + 2) as u8);
             }
             else if vg_r > -9 && vg_r < 8 && vg > -33 && vg < 32 && vg_b > -9 && vg_b < 8
             {
-              println!("luma");
+              //println!("luma");
               self.encoded.push(QOI_OP_LUMA | (vg + 32) as u8);
               self.encoded.push((((vg_r + 8) as u8) << 4) | (vg_b + 8) as u8);
             }
             else
             {
-              println!("rgb");
+              //println!("rgb");
               self.encoded.push(QOI_OP_RGB);
               self.encoded.push(pixel.red);
               self.encoded.push(pixel.green);
@@ -167,6 +169,7 @@ impl QoiFile
           }
           else
           {
+            //println!("rgba");
             self.encoded.push(QOI_OP_RGBA);
             self.encoded.push(pixel.red);
             self.encoded.push(pixel.green);
@@ -247,17 +250,17 @@ impl QoiFile
       } else if is_op_index(current_byte) {
         current_pixel = running_array[current_byte as usize].clone();
       } else if is_op_diff(current_byte) {
-        let dr = sub((current_byte & 48) >> 4, 2);
-        let dg = sub((current_byte & 12) >> 2, 2);
-        let db = sub(current_byte & 3, 2);
+        let dr = sub((current_byte & 48) >> 4, 2) as u8;
+        let dg = sub((current_byte & 12) >> 2, 2) as u8;
+        let db = sub(current_byte & 3, 2) as u8;
         current_pixel = QoiPixel::new(add(previous_pixel.red, dr), add(previous_pixel.green, dg), add(previous_pixel.blue, db), previous_pixel.alpha);
       } else if is_op_luma(current_byte) {
-        let diff_green = sub(current_byte & 63, 32);
+        let diff_green = sub(current_byte & 63, 32) as u8;
         let next_byte = &self.encoded[i + 1];
         i += 1;
         let drdg = (next_byte >> 4) & 15;
         let dbdg = next_byte & 15;
-        current_pixel = QoiPixel::new(add3(previous_pixel.red, sub(drdg, 8), diff_green), add(previous_pixel.green, diff_green), add3(previous_pixel.blue, sub(dbdg, 8), diff_green), previous_pixel.alpha);
+        current_pixel = QoiPixel::new(add3(previous_pixel.red, sub(drdg, 8) as u8, diff_green), add(previous_pixel.green, diff_green), add3(previous_pixel.blue, sub(dbdg, 8) as u8, diff_green), previous_pixel.alpha);
       } else if is_op_run(current_byte) {
         current_pixel = previous_pixel.clone();
         run_length = (current_byte & 63) + 1;
@@ -300,9 +303,9 @@ fn add3(a: u8, b: u8, c: u8) -> u8
   (((a as u32) + (b as u32) + (c as u32)) % 256) as u8
 }
 
-fn sub(a: u8, b: u8) -> u8
+fn sub(a: u8, b: u8) -> i32
 {
-  (((a as u32) + 256 - (b as u32)) % 256) as u8
+  ((a as i32) - (b as i32)) % 256
 }
 
 fn is_op_rgb(byte: u8) -> bool

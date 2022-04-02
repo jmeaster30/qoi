@@ -31,7 +31,7 @@ fn main() -> io::Result<()>{
             let mut pass = 0; 
             let mut total = 0;
 
-            for glob_entry in glob("qoi_test_images/testcard.qoi").unwrap() {
+            for glob_entry in glob("qoi_test_images/*.qoi").unwrap() {
                 match glob_entry {
                     Ok(file) => {
                         let filename = &file.into_os_string().into_string().unwrap();
@@ -64,11 +64,11 @@ fn main() -> io::Result<()>{
                             println!("{} - FAILED", filename);
                         }
 
-                        let distance = 10;
+                        let distance = 20;
                         let first_fail_idx = first_mismatch(initial_encoded.clone(), final_encoded.encoded.clone());
-                        let i_min = 0;//first_fail_idx - distance;
+                        let i_min = if first_fail_idx < distance { 0 } else { first_fail_idx - distance };
                         let i_max = cmp::min(first_fail_idx + distance, initial_encoded.len());
-                        let f_min = 0;//first_fail_idx - distance;
+                        let f_min = if first_fail_idx < distance { 0 } else { first_fail_idx - distance };
                         let f_max = cmp::min(first_fail_idx + distance, final_encoded.encoded.len());
                         println!("{}", first_fail_idx);                        
                         println!("{} {}", i_min, i_max);
