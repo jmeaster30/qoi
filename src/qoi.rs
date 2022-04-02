@@ -138,12 +138,12 @@ impl QoiFile
 
           if pixel.alpha == previous_pixel.alpha
           {
-            let vr: i32 = sub(pixel.red, previous_pixel.red);
-            let vg: i32 = sub(pixel.green, previous_pixel.green);
-            let vb: i32 = sub(pixel.blue, previous_pixel.blue);
+            let vr: i8 = sub(pixel.red, previous_pixel.red);
+            let vg: i8 = sub(pixel.green, previous_pixel.green);
+            let vb: i8 = sub(pixel.blue, previous_pixel.blue);
   
-            let vg_r: i32 = vr - vg;
-            let vg_b: i32 = vb - vg;
+            let vg_r: i32 = (vr as i32) - (vg as i32);
+            let vg_b: i32 = (vb as i32) - (vg as i32);
 
             //println!("[{}] {}, {}, {} -- {}, {}", self.encoded.len(), vr, vg, vb, vg_r, vg_b);
 
@@ -303,9 +303,9 @@ fn add3(a: u8, b: u8, c: u8) -> u8
   (((a as u32) + (b as u32) + (c as u32)) % 256) as u8
 }
 
-fn sub(a: u8, b: u8) -> i32
+fn sub(a: u8, b: u8) -> i8
 {
-  ((a as i32) - (b as i32)) % 256
+  (((a as i32) - (b as i32)) % 128) as i8
 }
 
 fn is_op_rgb(byte: u8) -> bool
